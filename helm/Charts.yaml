@@ -1,0 +1,7 @@
+---
+apiVersion: v3
+name: chinna
+version: 1.0.0
+description: qa-chart
+type: application
+appVersion: 2.2.1

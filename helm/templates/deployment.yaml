@@ -1,0 +1,62 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Values.Deployment.name }}"
+  labels:
+    app: "{{ .Values.Deployment.name }}"
+    env: "{{ .Values.Deployment.env }}"
+spec:
+  selector:
+    matchLabels:
+      app: "{{ .Values.Deployment.name }}"
+      env: "{{ .Values.Deployment.env }}"
+  replicas: {{ .Values.Deployment.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      name: "{{ .Values.Deployment.pod_name }}"
+      labels:
+        app: "{{ .Values.Deployment.name }}"
+        env: "{{ .Values.Deployment.env }}"
+        version: "{{ .Values.Deployment.version }}"
+    spec:
+      containers:
+        - name: "{{ .Values.Deployment.container_name }}"
+          image: maheshkumar010/cicd:"{{ .Values.Deployment.imageversion }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ .Values.Deployment.containerPort }}
+          resources:
+            requests:
+              cpu: "{{ .Values.Deployment.requests.cpu }}"
+              memory: "{{ .Values.Deployment.requests.memory }}"
+            limits:
+              cpu: "{{ .Values.Deployment.limits.cpu }}"
+              memory: "{{ .Values.Deployment.limits.memory }}"
+          startupProbe:
+            httpGet:
+              path: "{{ .Values.Deployment.startupProbe.path }}"
+              port: {{ .Values.Deployment.containerPort }}
+            periodSeconds: {{ .Values.Deployment.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.Deployment.startupProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: "{{ .Values.Deployment.livenessProbe.path }}"
+              port: {{ .Values.Deployment.containerPort }}
+            initialDelaySeconds: {{ .Values.Deployment.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.Deployment.livenessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.Deployment.livenessProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: "{{ .Values.Deployment.readinessProbe.path }}"
+              port: {{ .Values.Deployment.containerPort }}
+            initialDelaySeconds: {{ .Values.Deployment.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.Deployment.readinessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.Deployment.readinessProbe.failureThreshold }}
+      terminationGracePeriodSeconds: 30
+      serviceAccountName: chinna-app-sa

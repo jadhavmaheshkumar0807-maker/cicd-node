@@ -1,0 +1,43 @@
+Deployment:
+  name: chinna-app
+  env: qa 
+  replicas: 2
+  pod_name: chinna-app-pod
+  version: "1.16.0"
+  container_name: chinna-app-cnt
+  imageversion: ${BUILD_NUMBER}
+  containerPort: 3002
+  startupProbe:
+    path: /health/startup
+    periodSeconds: 10
+    failureThreshold: 30
+  livenessProbe:
+    path: /health/liveness
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+  readinessProbe:
+    path: /health/readiness
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+  requests:
+    cpu: "300m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1024Mi"
+
+Service:
+  name: chinna-lb-svc
+  env: qa 
+  type: LoadBalancer
+  port: 3002 
+  targetPort: 3002
+
+HorizontalPodAutoscaler:
+  name: chinna-hpa
+  kind: Deployment
+  maxReplicas: 3
+  minReplicas: 1
+  targetCPUUtilizationPercentage: 50

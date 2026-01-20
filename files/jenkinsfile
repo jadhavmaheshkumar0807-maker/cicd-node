@@ -1,0 +1,175 @@
+pipeline {
+    agent any
+    environment {
+        AWS_DEFAULT_REGION = "us-east-1"
+    }
+    stages {
+        stage ('Checkout_SCM') {
+            steps {
+                echo "Cloning GitHub repository"
+                git branch: 'main', url: 'https://github.com/jadhavmaheshkumar0807-maker/cicd-node.git'
+            }
+        }
+        stage ('Building_the_Artifact') {
+            steps {
+                sh '''
+                    set -e
+                    cd application
+                    mvn clean package -DskipTests
+                '''
+            }
+        }
+        stage ('Unit_Test') {
+            steps {
+                sh '''
+                    set -e
+                    cd application
+                    mvn test
+                '''
+            }
+        }
+        stage ('StaticCodeAnalysis_SonarQube') {
+            steps {
+                withCredentials([string(credentialsId: 'sonartoken', variable: 'sonartoken')]) {
+                    sh '''
+                        cd files
+                        mvn sonar:sonar \
+                        -Dsonar.host.url= \
+                        -Dsonar.login=${sonartoken}
+                    '''
+                }
+            }
+        }
+        stage ('Quality_Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+        stage ('Building_dockerfile_into_dockerImage') {
+            steps {
+                sh '''
+                    set -e
+                    cd files
+                    docker build -t maheshkumar010/cicd:${BUILD_NUMBER} dockerfile .
+                '''
+            }
+        }
+        stage ('Scanning_image_with_trivy_for_Vulnerebilities') {
+            steps {
+                sh '''
+                    set -e
+                    trivy image maheshkumar010/cicd:${BUILD_NUMBER}
+                '''
+            }
+        }
+        stage ('Pushing_image_to_DockerHub') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'dockerhub', variable: 'dockerhub')]) {
+                        sh '''
+                            echo "${dockerhub}"
+                            docker login -u maheshkumar010 --password-stdin
+                        '''
+                    }
+                    sh '''
+                        docker push maheshkumar010/cicd:${BUILD_NUMBER}
+                    '''
+                }
+            }
+        }
+        stage ('Updating_helm') {
+            environment {
+                GITHUB_USER_NAME = "jadhavmaheshkumar0807-maker"
+                GITHUB_REPO_NAME = "cicd-node"
+            }
+            steps {
+                withCredentials([string(credentialsId: 'githubtoken', variable: 'githubtoken')]) {
+                    sh '''
+                        git config user.name "Mahesh Jadhav"
+                        git config user.email "jadhavmaheshkumar0807@gmail.com"
+                        sed -i "s|cicd:.*|cicd:${BUILD_NUMBER}|g" helm/Values.yaml
+                        git add .
+                        git commit -m "updating the image tag with ${BUILD_NUMBER}"
+                        git push https://${githubtoken}@github.com/${GITHUB_USER_NAME}/${GITHUB_REPO_NAME.git HEAD:main
+                    '''
+                }
+            }
+        }
+        stage ('Installing_Terraform') {
+            steps {
+                sh '''
+                    set -e
+                    if ! command -v terraform >/dev/null 2>&1; then
+                        sudo yum install -y yum-utils shadow-utils
+                        sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+                        sudo yum install -y terraform
+                    fi
+                    terraform version
+                '''
+            }
+        }
+        stage ('Terraform_init_validate') {
+            steps {
+                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws creds', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                sh '''
+                    set -e
+                    cd Terraform/eks
+                    terraform init -input=false
+                    terraform validate
+                '''
+                }
+            }
+        }
+        stage ('Terraform_Plan') {
+            steps {
+                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws creds', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                sh '''
+                    set -e
+                    cd Terraform/eks
+                    terraform plan -out=tfplan
+                '''
+                }
+            }
+        }
+        stage ('Approve_Terraform_Apply') {
+            steps {
+                input message: "Apply Terraform changes to EKS?"
+
+            }
+        }
+        stage ('Terraform_apply') {
+            steps {
+                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws creds', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                sh '''
+                    set -e
+                    cd Terraform/eks
+                    terraform apply tfplan
+                '''
+                }
+            }
+        }
+        stage ('Deploying_application_in_k8s_helm_through_ANSIBLE') {
+            steps {
+                script {
+                    ansiblePlaybook(
+                        credentialsId: 'ssh',
+                        disableHostKeyChecking: true,
+                        installation: 'ansible',
+                        inventory: '/etc/ansible/inventory',
+                        playbook: 'files/ansible/playbook.yaml'
+                    )
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo "maheshkumar010/cicd:${BUILD_NUMBER} deployed successfully on EKS via helm charts through Ansible"
+        }
+        failure {
+            echo "Pipeline failed, checkout console output for RCA"
+        }
+    }
+}

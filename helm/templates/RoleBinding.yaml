@@ -1,0 +1,14 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chinna-app-rolebinding
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: chinna-app-sa
+    namespace: default
+roleRef:
+  kind: Role
+  name: chinna-app-role
+  apiGroup: rbac.authorization.k8s.io

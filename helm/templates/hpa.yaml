@@ -1,0 +1,19 @@
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: '{{ .Values.HorizontalPodAutoscaler.name }}'
+spec:
+  maxReplicas: {{ .Values.HorizontalPodAutoscaler.maxReplicas }}
+  minReplicas: {{ .Values.HorizontalPodAutoscaler.minReplicas }}
+  scaleTargetRef:
+    kind: "{{ .Values.HorizontalPodAutoscaler.kind }}"
+    name: chinna-app
+    apiVersion: apps/v1
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu 
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.HorizontalPodAutoscaler.targetCPUUtilizationPercentage }}

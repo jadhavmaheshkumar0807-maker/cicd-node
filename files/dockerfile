@@ -1,0 +1,25 @@
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci --only=production
+
+COPY . .
+
+FROM node:18-alpine
+
+RUN addgroup -S ec2-user && adduser -S ec2-user -G ec2-user
+
+WORKDIR /app
+
+COPY --from=builder /app /app
+
+RUN chown -R ec2-user:ec2-user /app
+
+USER ec2-user
+
+EXPOSE 3002
+
+CMD ["node", "app-js"]
