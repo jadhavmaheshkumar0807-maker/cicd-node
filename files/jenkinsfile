@@ -56,11 +56,7 @@ pipeline {
                 '''
             }
         }
-        stage ('archive_artifact') {
-            steps {
-                archiveArtifacts artifacts: '**/dist/**', fingerprint: true
-            }
-        }
+        
         stage ('StaticCodeAnalysis_SonarQube') {
             steps {
                 withCredentials([string(credentialsId: 'sonartoken', variable: 'sonartoken')]) {
