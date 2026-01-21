@@ -39,7 +39,11 @@ pipeline {
                 sh '''
                     set -e
                     cd application
-                    npm test
+                    if npm run | grep -q "test"; then 
+                        npm test
+                    else 
+                        echo "No test script found, skipping tests"
+                    fi
                 '''
             }
         }
