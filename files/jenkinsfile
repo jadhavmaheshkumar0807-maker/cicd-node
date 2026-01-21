@@ -34,7 +34,7 @@ pipeline {
                     sh '''
                         cd files
                         mvn sonar:sonar \
-                        -Dsonar.host.url= \
+                        -Dsonar.host.url=http://3.231.162.252:9000/ \
                         -Dsonar.login=${sonartoken}
                     '''
                 }
