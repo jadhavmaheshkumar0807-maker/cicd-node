@@ -64,7 +64,7 @@ pipeline {
                         set -e
                         cd application
                         npx sonar-scanner \
-                        -Dsonar.projectkey=cicd-node \
+                        -Dsonar.projectKey=cicd-node \
                         -Dsonar.sources=. \
                         -Dsonar.host.url=http://3.231.162.252:9000/ \
                         -Dsonar.login=${sonartoken}
