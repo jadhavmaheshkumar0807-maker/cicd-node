@@ -3,7 +3,13 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {},
+  "devDependencies": {
+    "sonar-scanner": "^4.8.0"
+  },
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "test": "echo \"No tests configured yet\" && exit 0",
+    "lint": "echo \"No lint rules configured yet\" && exit 0",
+    "build": "echo \"No build step required for this app\" && exit 0"
   }
 }
