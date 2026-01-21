@@ -24,7 +24,7 @@ pipeline {
         }
         stage ('line') {
             when {
-                fileExists('package.json')
+                expression { fileExists('package.json') }
             }
             steps {
                 sh '''
