@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {},
   "devDependencies": {
-    "sonar-scanner": "^4.8.0"
+    "sonar-scanner": "26.1.0.118079"
   },
   "scripts": {
     "start": "node app.js",
