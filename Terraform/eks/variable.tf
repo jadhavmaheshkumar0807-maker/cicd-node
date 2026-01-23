@@ -12,13 +12,19 @@ variable "cluster_name" {
 
 variable "private_subnet_cidr" {
     description = "CIDR blocks for private subnet"
-    default = ["11.91.6.0/24"]
+    default = [
+      "11.91.6.0/24",
+      "11.91.7.0/24"
+      ]
     type = list(string)
 }
 
 variable "public_subnet_cidr" {
     description = "CIDR blocks for private subnet"
-    default = ["11.91.7.0/24"]
+    default = [
+      "11.91.8.0/24",
+      "11.91.9.0/24"
+      ]
     type = list(string)
 }
 
@@ -45,11 +51,11 @@ variable "node_groups" {
 
     default = {
       main = {
-        instance_types = [ "t3.small" ]
+        instance_types = [ "c7i-flex.large" ]
         scaling_config = {
-            desired_size = 5
-            max_size = 8
-            min_size = 3
+            desired_size = 4
+            max_size = 6
+            min_size = 2
         }
       }
     }
