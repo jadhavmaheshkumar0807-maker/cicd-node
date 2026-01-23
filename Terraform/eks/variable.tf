@@ -29,7 +29,7 @@ variable "availability_zone" {
       condition = length(var.availability_zone) >= length(var.public_subnet_cidr)
       error_message = "availability_zone list must match subnet count"
     }
-    default = [ "us-east-1a" ]
+    default = [ "us-east-1a", "us-east-1b" ]
 }
 
 variable "node_groups" {
