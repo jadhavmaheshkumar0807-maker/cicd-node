@@ -1,0 +1,112 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_DEFAULT_REGION = "us-east-1"
+    }
+
+    stages {
+
+        stage ('Checkout_SCM') {
+            steps {
+                echo "Cloning GitHub repository"
+                git branch: 'main', url: 'https://github.com/jadhavmaheshkumar0807-maker/cicd-node.git'
+            }
+        }
+
+        stage ('Terraform_Init_Validate') {
+            steps {
+                withCredentials([aws(
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'aws creds',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                    script {
+                       
+                        sh '''
+                            set -e
+                            cd Terraform/eks
+
+                            echo "==== Terraform Init ===="
+                            terraform init -input=false
+
+                            echo "==== Terraform Validate ===="
+                            terraform validate
+                        '''
+                    }
+                }
+            }
+        }
+        stage ('Terraform_plan') {
+            steps {
+                withCredentials([aws(
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'aws creds',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                    script {
+                        sh '''
+                            set -e
+                            cd Terraform/eks
+                            echo "==== Terraform plan ===="
+                            terraform plan -out=tfplan
+                        '''
+                    }
+                }
+            }
+        }
+        stage ('waiting_for_approval') {
+            steps {
+                withCredentials([aws(
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'aws creds',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                    script {
+                        
+                            echo "==== waiting for approval ===="
+                            input message: "Apply Terraform changes to EKS?"
+
+                    }
+                }
+            }
+        }
+        stage ('Terraform_Apply') {
+            steps {
+                withCredentials([aws(
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    credentialsId: 'aws creds',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                    script {
+                        try {
+                            sh '''
+                                set -e
+                                cd Terraform/eks
+                                echo "==== Terraform Apply ===="
+                                terraform apply tfplan
+                            '''
+                        } catch (err) {
+                            echo "❌ Pipeline failed! Destroying partially created infrastructure..."
+                            sh '''
+                                set +e
+                                cd Terraform/eks
+                                terraform destroy -auto-approve || true
+                            '''
+                            error "Infrastructure provisioning failed. Rolled back using terraform destroy."
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Terraform applied successfully. EKS cluster is ready."
+        }
+        failure {
+            echo "❌ Pipeline failed. Partial infrastructure has been cleaned up."
+        }
+    }
+}
