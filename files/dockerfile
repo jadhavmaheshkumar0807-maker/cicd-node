@@ -4,19 +4,19 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci --only=production
+RUN npm install
 
 COPY . .
 
 FROM node:18-alpine
 
-RUN addgroup -S ec2-user && adduser -S ec2-user -G ec2-user
-
 WORKDIR /app
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 COPY --from=builder /app /app
 
-RUN chown -R ec2-user:ec2-user /app
+RUN chown -R appuser:appgroup /app
 
 USER ec2-user
 
