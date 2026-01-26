@@ -22,4 +22,4 @@ USER ec2-user
 
 EXPOSE 3002
 
-CMD ["node", "app-js"]
+CMD ["node", "application/app.js"]
